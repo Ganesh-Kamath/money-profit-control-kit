@@ -57,6 +57,4 @@ async function main() {
   console.log(licenseKey);
 }
 
-if (import.meta.url === `file://${process.argv[1].replace(/\\/g, '/')}`) {
-  main().catch(console.error);
-}
+main().catch(console.error);

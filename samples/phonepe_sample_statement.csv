@@ -1,0 +1,6 @@
+Date,Transaction ID,Details,Type,Amount
+2026-10-01 11:20:00,T261001001,Customer Counter QR Payment,CREDIT,450.00
+2026-10-01 14:15:00,T261001002,Paid to Delivery Partner,DEBIT,120.00
+2026-10-02 16:30:00,T261002001,Received for Birthday Cake,CREDIT,2200.00
+2026-10-03 10:45:00,T261003001,Dairy Fresh Milk Supplier,DEBIT,680.00
+2026-10-04 18:00:00,T261004001,Counter Pastry QR Orders,CREDIT,1850.00

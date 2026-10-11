@@ -50,7 +50,7 @@ async function deriveKeyFromPassphrase(
   return crypto.subtle.deriveKey(
     {
       name: 'PBKDF2',
-      salt,
+      salt: salt as unknown as ArrayBuffer,
       iterations: 100000,
       hash: 'SHA-256',
     },
@@ -76,10 +76,10 @@ export async function encryptData(data: any, passphrase: string): Promise<Encryp
   const ciphertextBuffer = await crypto.subtle.encrypt(
     {
       name: 'AES-GCM',
-      iv,
+      iv: iv as unknown as ArrayBuffer,
     },
     key,
-    encodedPlaintext
+    encodedPlaintext as unknown as ArrayBuffer
   );
 
   const ciphertextArray = new Uint8Array(ciphertextBuffer);
@@ -123,10 +123,10 @@ export async function decryptData(pkg: EncryptedPackage, passphrase: string): Pr
     const decryptedBuffer = await crypto.subtle.decrypt(
       {
         name: 'AES-GCM',
-        iv,
+        iv: iv as unknown as ArrayBuffer,
       },
       key,
-      ciphertextBytes
+      ciphertextBytes as unknown as ArrayBuffer
     );
 
     const decryptedStr = new TextDecoder().decode(decryptedBuffer);
