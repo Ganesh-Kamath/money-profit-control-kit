@@ -1,0 +1,24 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0F172A"/>
+      <stop offset="100%" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="emerald" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#10B981"/>
+      <stop offset="100%" stop-color="#059669"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <!-- Central Rupee / Shield Balance Emblem -->
+  <circle cx="256" cy="256" r="160" stroke="#334155" stroke-width="12" fill="none" opacity="0.6"/>
+  <!-- Compass / Dial marks -->
+  <line x1="256" y1="96" x2="256" y2="120" stroke="#64748B" stroke-width="8" stroke-linecap="round"/>
+  <line x1="256" y1="392" x2="256" y2="416" stroke="#64748B" stroke-width="8" stroke-linecap="round"/>
+  <line x1="96" y1="256" x2="120" y2="256" stroke="#64748B" stroke-width="8" stroke-linecap="round"/>
+  <line x1="392" y1="256" x2="416" y2="256" stroke="#64748B" stroke-width="8" stroke-linecap="round"/>
+  <!-- Core Symbol: Growth and Balance Shield -->
+  <path d="M256 160 L330 200 L330 280 C330 330 295 365 256 380 C217 365 182 330 182 280 L182 200 Z" fill="url(#emerald)"/>
+  <!-- Rupee Symbol cut out in white -->
+  <path d="M236 210 L276 210 M236 226 L276 226 M236 210 L236 242 C248 242 260 238 260 228 C260 218 248 214 236 214 M236 242 L266 286" stroke="#FFFFFF" stroke-width="10" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+</svg>

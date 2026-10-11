@@ -1,51 +1,34 @@
-# Decisions & Assumptions Log (ASSUMPTIONS.md)
+# Decisions & Assumptions Log (Local-First Architecture)
 
-This document records architectural, product, and implementation decisions made during the autonomous build of **Money & Profit Control Kit**.
+This document records the architectural and design decisions made for the 100% local, privacy-first **Money & Profit Control Kit**.
 
-## 1. Local Runtime & Database Dual-Mode Architecture
-- **Situation:** Local workstation environment does not have Docker or native PostgreSQL installed. Production deployments will use managed Supabase (PostgreSQL with RLS + GoTrue Auth + Storage).
+## 1. Local Storage Choice: IndexedDB via Dexie.js
+- **Evaluation:** Evaluated SQLite-WASM on OPFS vs IndexedDB (Dexie.js).
+- **Decision:** Selected Dexie.js (IndexedDB).
+  - *Reasons:*
+    1. 100% native support across all mobile (iOS Safari, Android Chrome) and desktop browsers without requiring `SharedArrayBuffer` or Cross-Origin Isolation (`COOP`/`COEP`) headers that complicate static hosting or PWA service worker caching.
+    2. Built-in ACID transactions ensure atomic balance updates across accounts and transactions.
+    3. Native support for Blob storage for receipt images/PDFs.
+    4. Easily testable in Vitest via `fake-indexeddb` and in real browser environments via Playwright.
+    5. Exceptional query performance for 50,000+ records via composite indexes.
+
+## 2. Zero-Network Security Model
+- **Decision:** The application issues ZERO network requests with user financial data.
+- **Enforcement:**
+  - Strict Content-Security-Policy: `default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self'; font-src 'self' data:; frame-ancestors 'none';`
+  - Self-hosted Inter font and all SVG icons bundled locally.
+  - Automated test verifying that no outbound fetch/XHR calls to external origins are ever made.
+
+## 3. Offline Ed25519 Licensing
 - **Decision:**
-  1. We provide production-grade PostgreSQL SQL migrations in `supabase/migrations/` containing tables, constraints, functions, triggers, and Row Level Security policies for all tables.
-  2. For the Python FastAPI backend and local development without Docker, we implement an SQLite/PostgreSQL-compatible abstraction with an in-process SQLite engine that executes exact RLS validation, role checking (Owner, Bookkeeper, Viewer), foreign keys, and atomic balance updates.
-  3. The FastAPI service can connect either to local SQLite (zero-dependency instant run) or to Supabase via `SUPABASE_DATABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY`.
-  4. Docker Compose configuration is provided for teams who run Supabase/PostgreSQL locally via containers.
+  - Owner uses `tools/keygen.ts` to generate an Ed25519 keypair and `tools/generate-license.ts` to sign customer licenses.
+  - The frontend embeds ONLY the public key and uses the Web Crypto API / `@noble/ed25519` to verify signatures offline.
+  - License payload specifies tier (`solo` or `business`), licensee name, email, issue date, and update validity date.
+  - Solo tier permits 1 active workspace. Business tier permits up to 5 workspaces, customer invoicing/receivables, month-end review, and period locking.
+  - Expired update periods NEVER lock the user out of their installed app or data.
 
-## 2. Shared Calculation Engine (Single Source of Truth)
-- **Decision:** The calculation engine lives in `backend/app/calculation_engine.py` (and mirrored with deterministic TypeScript calculations for client-side offline previews). The backend calculation engine is authoritative for:
-  - Dashboard overview numbers
-  - Sales & Profit analytics
-  - Cash flow breakdowns
-  - Weekly and monthly reports
-  - CSV and PDF export generation
-  - Scheduled report emails
-- **Rules Enforced:**
-  - Money stored as integer paise (`amount_paise`). 1 INR = 100 paise.
-  - Indian numbering formatting (`₹1,25,000.00`).
-  - Transfers move money between accounts and NEVER count as revenue or expense.
-  - Net Profit = Recognised Income − Recognised Expenses.
-  - Cash Movement = Inflows − Outflows.
-  - Unpaid invoices are receivables. Invoice collections increase cash but do not count as new revenue if invoice revenue was already recognised.
-  - Period boundaries respect the business's timezone (default `Asia/Kolkata`) and Financial Year starting month (default April 1).
-
-## 3. Payments & Provisioning (Razorpay + Simulated Mode)
+## 4. Encryption & Privacy
 - **Decision:**
-  - Real mode validates `x-razorpay-signature` using HMAC-SHA256 with the webhook secret.
-  - Test/Simulated mode: When running tests or local development without live Razorpay keys, setting `ENABLE_PAYMENT_SIMULATION=true` allows invoking a `/api/v1/payments/simulate` endpoint. This generates a synthetic payload, signs it with the local secret, and passes it through the exact same webhook verification and provisioning pipeline.
-  - Automatic provisioning generates the user, workspace (business), license (Solo or Business tier, 12 months validity), default categories, accounts, and dispatches a welcome email.
-
-## 4. Email Sink & Test Mode
-- **Decision:**
-  - Resend API key integration is supported for production.
-  - When `RESEND_API_KEY` is not configured or in development mode, emails are routed to a local development memory/file sink (`backend/logs/sent_emails.jsonl`) with an API inspection endpoint `/api/v1/emails/recent` so test scripts and UI can verify generated emails without external network dependencies.
-
-## 5. Storage & Receipts
-- **Decision:**
-  - Production uses Supabase Storage private bucket `receipts`.
-  - Local mode stores receipts in `backend/storage/receipts` and issues time-limited signed access tokens via FastAPI.
-  - Receipt duplicates are detected via SHA-256 hash.
-
-## 6. AI & LLM Features
-- **Decision:**
-  - AI receipt parsing and natural-language "Ask about my numbers" assistant are feature-flagged OFF by default (`ENABLE_AI_RECEIPTS=false`, `ENABLE_AI_ASSISTANT=false`).
-  - Deterministic assistant runs exact SQL/calculation aggregations for standard questions ("largest expense this month", "why did profit change") and surfaces verified calculations.
-  - When flags are enabled without an external key, a mock provider returns deterministic structured extractions for end-to-end testing.
+  - Full backup exports (`.cpk` files) and receipt blobs are encrypted using WebCrypto AES-256-GCM with a key derived from a user-provided passphrase via PBKDF2 (100,000 iterations, SHA-256).
+  - Passcode/PIN App Lock protects the UI session with auto-lock timer and session storage hash.
+  - Clear Privacy Centre showing local database size, persistence status, and zero-network guarantee.
