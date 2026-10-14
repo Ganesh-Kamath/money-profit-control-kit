@@ -141,3 +141,21 @@ Because ControlKit is **100% on-device** with zero cloud servers, you maintain a
 - Set a 4-digit PIN in **Settings → App Security**.
 - The app locks automatically after 5 minutes of inactivity or upon clicking the lock icon in the sidebar.
 - Navigate to **Privacy Centre** to inspect storage usage and confirm zero external network connections.
+
+---
+
+## ⚠️ 9. Known Limitations & Honest Platform Boundaries
+
+ControlKit makes trade-offs in favor of 100% privacy and zero subscription fees. Here is what you should know:
+
+1. **No Automatic Multi-Device Cloud Sync:**
+   - Because ControlKit never sends your transactions to an external database, data does not automatically sync between your phone and laptop in real-time. To move records between devices, export an encrypted `.ckbackup` file and restore it on the second device.
+2. **iOS / Safari Storage Eviction Policy:**
+   - Apple's WebKit engine on iOS may evict IndexedDB records if a website is unused for more than 7 days. **Recommendation:** Add ControlKit to your iPhone Home Screen ("Share → Add to Home Screen") and maintain a weekly encrypted backup file.
+3. **Zero Backdoors / No Passphrase Recovery:**
+   - Encrypted backups use AES-256-GCM cryptography with PBKDF2 key derivation. Because there is no server, nobody (including the developers) can reset your backup passphrase. Store your passphrase securely.
+4. **No Automated Bank Scrapers:**
+   - ControlKit does not ask for your netbanking credentials or SMS permissions. You import standard CSV or Excel bank statements via the drag-and-drop import wizard.
+5. **Direct Directory Backup Browser Support:**
+   - The native local directory file picker uses the W3C File System Access API (supported in desktop Chrome, Edge, and Opera). On Firefox and Safari, backups download via standard browser download downloads.
+
