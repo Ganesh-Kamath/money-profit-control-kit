@@ -8,7 +8,7 @@ import {
   type Account,
   type Receipt,
 } from '../storage/db';
-import { formatINR, CalculationEngine } from '../engine/calculationEngine';
+import { formatINR, CalculationEngine, sanitizeCSVCell } from '../engine/calculationEngine';
 import {
   Search,
   Filter,
@@ -22,7 +22,15 @@ import {
   History,
   X,
   Plus,
+  Zap,
+  Sliders,
+  CalendarClock,
+  Coins,
 } from 'lucide-react';
+import { FastEntryModal } from '../components/FastEntryModal';
+import { CategorisationRulesModal } from '../components/CategorisationRulesModal';
+import { RecurringEntriesModal } from '../components/RecurringEntriesModal';
+import { DailyCashModal } from '../components/DailyCashModal';
 
 export const TransactionsPage: React.FC = () => {
   const { activeWorkspace, openAddTxModal, showToast } = useApp();
@@ -46,6 +54,12 @@ export const TransactionsPage: React.FC = () => {
   // Void Modal state
   const [voidingTx, setVoidingTx] = useState<Transaction | null>(null);
   const [voidReason, setVoidReason] = useState<string>('');
+
+  // Feature Modals state
+  const [isFastEntryOpen, setIsFastEntryOpen] = useState(false);
+  const [isRulesOpen, setIsRulesOpen] = useState(false);
+  const [isRecurringOpen, setIsRecurringOpen] = useState(false);
+  const [isDailyCashOpen, setIsDailyCashOpen] = useState(false);
 
   // Pagination
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -207,16 +221,16 @@ export const TransactionsPage: React.FC = () => {
       'Receipt File',
     ];
     const rows = filtered.map((t) => [
-      t.id,
+      sanitizeCSVCell(t.id),
       t.occurredAt.slice(0, 10),
       t.type,
       (t.amountPaise / 100).toFixed(2),
-      `"${t.description.replace(/"/g, '""')}"`,
-      `"${(catMap[t.categoryId || ''] || '').replace(/"/g, '""')}"`,
-      `"${(accMap[t.accountId || ''] || '').replace(/"/g, '""')}"`,
-      `"${(t.referenceNumber || '').replace(/"/g, '""')}"`,
+      sanitizeCSVCell(t.description),
+      sanitizeCSVCell(catMap[t.categoryId || ''] || ''),
+      sanitizeCSVCell(accMap[t.accountId || ''] || ''),
+      sanitizeCSVCell(t.referenceNumber || ''),
       t.status,
-      receipts[t.id] ? receipts[t.id].fileName : '',
+      sanitizeCSVCell(receipts[t.id] ? receipts[t.id].fileName : ''),
     ]);
 
     const csvContent =
@@ -242,7 +256,39 @@ export const TransactionsPage: React.FC = () => {
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          <button
+            onClick={() => setIsFastEntryOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-control bg-emerald-600 px-3 py-1.5 text-xs font-bold text-white shadow-sm hover:bg-emerald-700 transition"
+            title="Fast 3-tap sale entry for counter/UPI sales"
+          >
+            <Zap className="h-3.5 w-3.5" />
+            <span>Fast Sale (3-Tap)</span>
+          </button>
+          <button
+            onClick={() => setIsDailyCashOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-control border border-surface-border bg-white px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm hover:bg-surface-subtle transition"
+            title="Reconcile physical cash drawer notes with ledger"
+          >
+            <Coins className="h-3.5 w-3.5 text-amber-500" />
+            <span>Daily Cash</span>
+          </button>
+          <button
+            onClick={() => setIsRulesOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-control border border-surface-border bg-white px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm hover:bg-surface-subtle transition"
+            title="Manage auto-categorisation rules"
+          >
+            <Sliders className="h-3.5 w-3.5 text-brand-500" />
+            <span>Auto-Rules</span>
+          </button>
+          <button
+            onClick={() => setIsRecurringOpen(true)}
+            className="inline-flex items-center gap-1.5 rounded-control border border-surface-border bg-white px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm hover:bg-surface-subtle transition"
+            title="Manage recurring bills and dues (rent, salary, EMI)"
+          >
+            <CalendarClock className="h-3.5 w-3.5 text-purple-500" />
+            <span>Recurring</span>
+          </button>
           <button
             onClick={handleExportCSV}
             className="inline-flex items-center gap-1.5 rounded-control border border-surface-border bg-white px-3 py-1.5 text-xs font-semibold text-navy-700 shadow-sm hover:bg-surface-subtle transition"
@@ -551,6 +597,42 @@ export const TransactionsPage: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Fast 3-Tap Entry Modal */}
+      <FastEntryModal
+        isOpen={isFastEntryOpen}
+        onClose={() => {
+          setIsFastEntryOpen(false);
+          loadData();
+        }}
+      />
+
+      {/* Auto-Categorisation Rules Modal */}
+      <CategorisationRulesModal
+        isOpen={isRulesOpen}
+        onClose={() => {
+          setIsRulesOpen(false);
+          loadData();
+        }}
+      />
+
+      {/* Recurring Entries Modal */}
+      <RecurringEntriesModal
+        isOpen={isRecurringOpen}
+        onClose={() => {
+          setIsRecurringOpen(false);
+          loadData();
+        }}
+      />
+
+      {/* Daily Cash Reconciliation Modal */}
+      <DailyCashModal
+        isOpen={isDailyCashOpen}
+        onClose={() => {
+          setIsDailyCashOpen(false);
+          loadData();
+        }}
+      />
     </div>
   );
 };

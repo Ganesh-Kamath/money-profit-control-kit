@@ -1,71 +1,143 @@
-# Customer Guide & Operational Handbook
+# Customer Guide & Operational Handbook: ControlKit
 
-Welcome to **Money & Profit Control Kit (ControlKit)**. This guide explains how to get the most out of your local financial dashboard, protect your data, and collaborate smoothly with your accountant.
-
----
-
-## 🧭 Getting Started in 5 Minutes
-
-### 1. Setting Up Your Accounts
-Navigate to **Cash & Accounts**. Configure your actual financial channels:
-- **Bank Accounts:** HDFC, SBI, ICICI, etc.
-- **Merchant Wallets:** PhonePe Merchant, Paytm Business, Google Pay.
-- **Physical Cash Box / Petty Cash.**
-
-Enter the opening balance as of a specific date (e.g., 1st of the month).  
-*Note:* Entering an opening balance does not magically pull past history; it establishes the baseline from which all future ledger entries calculate your closing balances.
-
-### 2. Daily Habits: Answering the 5 Questions
-Every evening or end-of-business, open the app:
-1. **How much came in today?** Check the Overview top card. Tap "+ Add Transaction" to log cash sales or counter collections if not using statement import.
-2. **How much went out and on what?** Log vendor purchases, milk, butter, packaging boxes, delivery charges. Snap a photo of the bill or receipt.
-3. **What is my real operating profit?** View **Sales & Profit**. Remember: money received from an old invoice is cash inflow, not new profit. Internal bank transfers are cash movements, never expenses.
-4. **How much cash is available now?** Check the consolidated balance total across all accounts.
-5. **What needs attention next?** Review the **Attention Centre** at the bottom of the Overview for unreviewed receipts or overdue tasks.
+Welcome to **Money & Profit Control Kit (ControlKit)**. This guide provides comprehensive instructions on how to use every feature of your local financial dashboard, protect your data, and collaborate smoothly with your Chartered Accountant.
 
 ---
 
-## 🛡️ Protecting Your Data: Backups & Device Migration
+## 🧭 1. First-Run Onboarding & Quick Setup
 
-Because ControlKit operates **100% on your device** without a centralized cloud server, **you are the owner of your data**. Here is how to keep it safe:
+When you first launch ControlKit, the onboarding wizard helps configure your business in under 60 seconds:
 
-### Regular Backups (The 1-Minute Habit)
-1. Go to **Import & Backup → Backup & Restore**.
-2. Enter a memorable passphrase and click **Download Encrypted Full Backup (`.cpk`)**.
-3. Save the file to your computer, a USB thumb drive, or send it to yourself on email / Google Drive / WhatsApp.
-4. If you ever clear your browser cache or lose your device, your encrypted file can restore your entire business state in 2 seconds.
-
-> **Caution:** We use AES-256-GCM encryption with 100,000 PBKDF2 iterations. If you forget your backup passphrase, nobody on earth can decrypt your file. Store your passphrase securely!
-
-### Moving to a New Laptop or Phone
-1. On your old device: Export an Encrypted Backup (`.cpk`).
-2. Transfer the `.cpk` file to your new device.
-3. Open ControlKit in the browser on your new device.
-4. Go to **Import & Backup → Restore Backup**.
-5. Select the file, type your passphrase, and choose **Replace Existing Data**.
-6. All transactions, accounts, categories, and receipt attachments are instantly restored.
+1. **Select Your Business Archetype:**
+   - **Home Bakery / Custom Food:** Tailored categories for raw ingredients, packaging boxes, delivery charges, and counter sales.
+   - **School / College Tutor:** Categories for student tuition fees, study materials, and batch rent.
+   - **Kirana / Small Retail:** Fast cash counter sales, supplier stock, and utility dues.
+   - **Solo Consultant / Freelancer:** Service revenue, professional software tools, client travel, and home office costs.
+   - **Small Workshop / Fabricator:** Job-work income, raw materials (metal, sheets, fasteners), machine maintenance, and worker wages.
+2. **Establish Starting Baselines:**
+   - Enter your current cash on hand (e.g. ₹5,000) and starting bank balance (e.g. ₹25,000).
+   - *Note:* Entering an opening balance establishes the baseline from which all future transactions calculate your live closing balances.
+3. **Optional GST Setup:**
+   - Enter your 15-digit GSTIN (e.g. `27AAAAA0000A1Z5`). The system automatically verifies the format and derives your home state.
 
 ---
 
-## 📥 Importing Bank & UPI Statements
+## ⚡ 2. Fast 3-Tap Entry & Instant Undo
 
-Avoid typing hundreds of entries manually:
-1. Download a CSV statement from your bank or merchant portal (HDFC, SBI, ICICI, Axis, Kotak, PhonePe, Paytm).
-2. Go to **Import & Backup → Bank & UPI Statements**.
-3. Select your statement preset or use the **Column Mapping Wizard**.
-4. The wizard previews your transactions and checks for duplicates.
-5. Confirm import. All account balances update atomically.
+Small business owners don't have time to fill out lengthy forms for counter or UPI sales.
+
+1. **Sale in 3 Taps:**
+   - Click or tap **Fast Sale (3-Tap)** on the overview or ledger header.
+   - Tap one of the quick amount chips (`+₹100`, `+₹250`, `+₹500`, `+₹1,000`, `+₹2,000`) or type an amount.
+   - Tap your payment account (Cash or UPI Bank Account).
+   - Tap **Confirm & Record Sale**.
+2. **Instant Undo Toast:**
+   - If you tap the wrong amount by mistake, a prominent floating banner appears for 6 seconds with an **"Undo Action"** button.
+   - Clicking Undo completely rolls back the transaction and recalculates account balances instantly.
 
 ---
 
-## 🤝 Working with Your Accountant / CA
+## 💵 3. Daily Cash Drawer Closing
 
-ControlKit is built to **complement** your accountant, not replace them:
-- **What ControlKit Does:** Daily operational control, cash availability, customer receivables, receipt storage, and real-time operating profit margins.
-- **What Your CA Does:** Statutory bookkeeping, GST returns (GSTR-1, GSTR-3B), depreciation schedules, advance tax calculation, and balance sheet audits.
+Avoid the end-of-day headache of unexplained cash shortages:
 
-### Month-End Routine for Your CA
-1. At the end of every calendar month, go to **Reports → Month-End Review**.
-2. Verify all accounts are reconciled against your bank passbook.
-3. Click **Export Month-End CSV** to send clean, categorized ledger entries to your accountant.
-4. For Business plan users: Click **Lock Accounting Period**. This prevents accidental retroactive edits to finalized months.
+1. Tap **Daily Cash** in the ledger or overview.
+2. Enter the physical note counts in your register drawer:
+   - ₹500, ₹200, ₹100, ₹50, ₹20, ₹10, and coins.
+3. The counter displays:
+   - **Total Physical Cash Counted**
+   - **Ledger System Cash Balance**
+   - **Difference / Discrepancy**
+4. If there is a minor variance (e.g. ₹50 unreturned change), tap **Record Reconciliation Entry** to atomically balance the register with an audit note.
+
+---
+
+## 📄 4. GST Tax Invoicing & UPI QR Code Payments
+
+ControlKit includes a full-fledged Indian tax invoicing engine:
+
+1. **Creating an Invoice:**
+   - Navigate to **Receivables & Invoicing → Create Invoice**.
+   - Enter Customer Name, GSTIN (optional), and Place of Supply state.
+   - Add line items with quantity, unit rate in rupees, HSN/SAC code, and GST rate (0%, 5%, 12%, 18%, 28%).
+2. **Intra-State vs Inter-State Tax Calculations:**
+   - If the customer state matches your business state: Automatically calculates **50% CGST + 50% SGST**.
+   - If different: Automatically calculates **100% IGST**.
+   - All calculations are performed in **integer paise**, eliminating floating-point rounding errors.
+3. **Indian Amount in Words:**
+   - Generates the legal amount in words (e.g. *"Rupees Twelve Thousand Five Hundred and Paise Zero Only"*).
+4. **Offline UPI Payment QR Code:**
+   - Renders a pure-SVG QR code containing a standard UPI URI (`upi://pay?pa=...&am=...&cu=INR`).
+   - Customers can scan with Google Pay, PhonePe, Paytm, or BHIM to pay the exact invoice amount.
+5. **Print or Save as PDF:**
+   - Tap **Print / Save as PDF** to generate a clean, professional A4 printout using the built-in print stylesheet.
+
+---
+
+## 📥 5. Statement Import & Duplicate Detection Wizard
+
+Import bank and UPI statements without manual data entry:
+
+1. **Supported Formats:**
+   - Excel (`.xlsx`, `.xls`) and CSV files from SBI, HDFC, ICICI, Axis, Kotak, PhonePe, Paytm, etc.
+2. **Intelligent Preamble Skipping:**
+   - The engine automatically skips bank header preambles (account numbers, branch IFSC, address lines) and detects where column headers begin.
+3. **Messy Format Support:**
+   - Parses Indian number formatting (`1,23,456.78`), debit/credit indicator columns (`Dr` / `Cr`), and negative parentheses (`(1,250.00)`).
+   - Handles standard Indian date formats: `DD/MM/YYYY`, `DD-MM-YYYY`, `DD-MMM-YY`.
+4. **Duplicate Candidate Review:**
+   - The wizard cross-references imported transactions against existing ledger entries using a fuzzy matching window (matching amount and date within ±2 days).
+   - Confirmed duplicates can be skipped with 1 click before final import.
+
+---
+
+## 🔁 6. Auto-Categorisation Rules & Recurring Bills
+
+1. **Auto-Categorisation Rules:**
+   - Navigate to **Ledger → Auto-Rules**.
+   - Create rules like: *"When description contains `SWIGGY` → Categorize as Food Delivery"* or *"When description contains `PETROL` → Categorize as Fuel & Vehicle"*.
+   - Tap **Apply Rules to Existing Transactions** to instantly re-categorize past unorganized entries.
+2. **Recurring Bills (Rent, Salary, EMI):**
+   - Navigate to **Ledger → Recurring**.
+   - Set up recurring dues with recurrence frequency (Monthly, Quarterly, Annual).
+   - The Overview Attention Centre flags dues on their due date, allowing 1-tap confirmation into the ledger.
+
+---
+
+## 📊 7. Reports, Financial Years, & CA Pack Export
+
+1. **Indian Financial Year & Quarters:**
+   - Switch between **FY (Apr–Mar)**, **Q1 (Apr–Jun)**, **Q2 (Jul–Sep)**, **Q3 (Oct–Dec)**, and **Q4 (Jan–Mar)**.
+2. **Month-on-Month (MoM) & Year-on-Year (YoY) Comparisons:**
+   - View revenue and profit deltas compared to the prior period with percentage growth indicators.
+3. **Receivables Ageing:**
+   - Visual breakdown of unpaid invoices: **0–30 Days (Current)**, **31–60 Days (Attention)**, and **61+ Days (Overdue)**.
+4. **One-Tap Accountant CA Pack:**
+   - Navigate to **Reports → Accountant Pack**.
+   - **Download Ledger CSV:** Full double-entry general ledger with Indian date formats and debit/credit columns.
+   - **Download Invoices CSV:** Complete invoice register with GST eligibility and payment statuses.
+   - *Security Note:* All CSV exports automatically sanitize formula characters (`=`, `+`, `-`, `@`) to prevent spreadsheet injection vulnerabilities.
+5. **Period Locking (Business Tier):**
+   - Lock finalized accounting months to prevent accidental retroactive edits.
+
+---
+
+## 🛡️ 8. Data Security, Encrypted Backups, & Device Migration
+
+Because ControlKit is **100% on-device** with zero cloud servers, you maintain absolute sovereignty over your financial data.
+
+### The 1-Minute Backup Routine
+1. Navigate to **Import & Backup → Backup & Restore**.
+2. Enter a strong passphrase and click **Download Encrypted Full Backup (`.cpk`)**.
+3. Save the `.cpk` file to a USB thumb drive, external drive, or email it to yourself.
+4. **"Test My Backup" Validator:**
+   - Tap **Test / Validate Backup File** to verify that your backup file is healthy and decryptable without overwriting your active database.
+5. **Direct Directory Backup (File System Access API):**
+   - On supported desktop browsers (Chrome, Edge), choose a local backup folder to write backups directly to your hard drive with 1 click.
+
+> **Important Note:** We utilize AES-256-GCM encryption with 100,000 PBKDF2 iterations. There is no central server and no backdoor. Keep your backup passphrase in a safe place!
+
+### App PIN Lock & Privacy Center
+- Set a 4-digit PIN in **Settings → App Security**.
+- The app locks automatically after 5 minutes of inactivity or upon clicking the lock icon in the sidebar.
+- Navigate to **Privacy Centre** to inspect storage usage and confirm zero external network connections.

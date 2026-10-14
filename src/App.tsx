@@ -5,6 +5,7 @@ import { PinLockModal } from './components/PinLockModal';
 import { AddTransactionModal } from './components/AddTransactionModal';
 import { DrilldownModal } from './components/DrilldownModal';
 import { AssistantDrawer } from './components/AssistantDrawer';
+import { OnboardingModal } from './components/OnboardingModal';
 
 // Pages
 import { OverviewPage } from './pages/OverviewPage';
@@ -27,7 +28,16 @@ export const App: React.FC = () => {
     openAssistant,
     closeAssistant,
     drilldownParams,
+    workspaces,
   } = useApp();
+
+  const [isOnboardingOpen, setIsOnboardingOpen] = React.useState(false);
+
+  useEffect(() => {
+    if (workspaces.length === 0) {
+      setIsOnboardingOpen(true);
+    }
+  }, [workspaces]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {
@@ -86,6 +96,10 @@ export const App: React.FC = () => {
       {isAddTxModalOpen && <AddTransactionModal />}
       {drilldownParams && <DrilldownModal />}
       {isAssistantOpen && <AssistantDrawer />}
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={() => setIsOnboardingOpen(false)}
+      />
     </AppShell>
   );
 };

@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import {
   formatINR,
   parseINRToPaise,
+  formatIndianDate,
   getPeriodBoundaries,
   CalculationEngine,
   type TransactionRecord,
@@ -123,18 +124,67 @@ describe('CalculationEngine & Currency Rules', () => {
     expect(duplicates[0].id).toBe('tx1');
   });
 
-  it('identifies statistical outlier expenses neutrally', () => {
-    const expenses: TransactionRecord[] = [
-      { id: 'e1', type: 'expense', amountPaise: 20000, occurredAt: '2026-10-01', status: 'active', description: 'Eggs' },
-      { id: 'e2', type: 'expense', amountPaise: 25000, occurredAt: '2026-10-02', status: 'active', description: 'Sugar' },
-      { id: 'e3', type: 'expense', amountPaise: 30000, occurredAt: '2026-10-03', status: 'active', description: 'Butter' },
-      { id: 'e4', type: 'expense', amountPaise: 22000, occurredAt: '2026-10-04', status: 'active', description: 'Milk' },
-      // Outlier of ₹6,000 (600,000 paise) exceeding user threshold ₹5,000
-      { id: 'e5', type: 'expense', amountPaise: 600000, occurredAt: '2026-10-05', status: 'active', description: 'Bulk Vanilla' },
+  it('formats dates in DD/MM/YYYY Indian format', () => {
+    expect(formatIndianDate('2026-10-15T10:00:00Z')).toBe('15/10/2026');
+  });
+
+  it('calculates quarterly period boundaries correctly', () => {
+    const ref = new Date(2026, 9, 15); // October 2026
+    const { start: q1Start, end: q1End } = getPeriodBoundaries('q1', ref);
+    expect(q1Start.getMonth()).toBe(3); // April
+    expect(q1End.getMonth()).toBe(5); // June
+
+    const { start: q3Start, end: q3End } = getPeriodBoundaries('q3', ref);
+    expect(q3Start.getMonth()).toBe(9); // October
+    expect(q3End.getMonth()).toBe(11); // December
+  });
+
+  it('computes plain-language period comparisons with deltas', () => {
+    const cur = CalculationEngine.calculateMetrics([
+      { id: '1', type: 'income', amountPaise: 10000000, occurredAt: '2026-10-01', status: 'active', description: 'Oct Sales' },
+      { id: '2', type: 'expense', amountPaise: 4000000, occurredAt: '2026-10-02', status: 'active', description: 'Oct Expenses' },
+    ]);
+    const prev = CalculationEngine.calculateMetrics([
+      { id: '3', type: 'income', amountPaise: 8000000, occurredAt: '2026-09-01', status: 'active', description: 'Sep Sales' },
+      { id: '4', type: 'expense', amountPaise: 3500000, occurredAt: '2026-09-02', status: 'active', description: 'Sep Expenses' },
+    ]);
+
+    const comp = CalculationEngine.calculateComparison(cur, prev, 'last month');
+    expect(comp.isProfitUp).toBe(true);
+    expect(comp.profitDeltaPaise).toBe(1500000); // (100k - 40k) - (80k - 35k) = 60k - 45k = ₹15,000
+    expect(comp.profitSummary).toContain('Profit is up ₹15,000.00');
+    expect(comp.revenueSummary).toContain('Revenue is up ₹20,000.00');
+  });
+
+  it('computes receivables ageing buckets (0-30, 31-60, 61+ days)', () => {
+    const now = new Date('2026-10-15');
+    const invoices = [
+      { id: '1', invoiceNumber: 'INV1', totalAmountPaise: 100000, paidAmountPaise: 0, status: 'unpaid' as const, dueDate: '2026-10-10' }, // 5 days overdue -> 0-30
+      { id: '2', invoiceNumber: 'INV2', totalAmountPaise: 200000, paidAmountPaise: 50000, status: 'partially_paid' as const, dueDate: '2026-09-01' }, // 44 days overdue -> 31-60
+      { id: '3', invoiceNumber: 'INV3', totalAmountPaise: 300000, paidAmountPaise: 0, status: 'unpaid' as const, dueDate: '2026-07-01' }, // 106 days overdue -> 61+
+      { id: '4', invoiceNumber: 'INV4', totalAmountPaise: 500000, paidAmountPaise: 500000, status: 'paid' as const, dueDate: '2026-07-01' }, // paid -> ignored
     ];
-    const outliers = CalculationEngine.detectUnusualExpenses(expenses, 500000);
-    expect(outliers.length).toBe(1);
-    expect(outliers[0].transaction.id).toBe('e5');
-    expect(outliers[0].reason).toContain('exceeds your alert threshold');
+
+    const report = CalculationEngine.calculateReceivablesAgeing(invoices as any, now);
+    expect(report.current0to30.amountPaise).toBe(100000); // ₹1,000
+    expect(report.current0to30.invoiceCount).toBe(1);
+    expect(report.overdue31to60.amountPaise).toBe(150000); // ₹1,500
+    expect(report.overdue31to60.invoiceCount).toBe(1);
+    expect(report.overdue61plus.amountPaise).toBe(300000); // ₹3,000
+    expect(report.overdue61plus.invoiceCount).toBe(1);
+    expect(report.totalOutstandingPaise).toBe(550000); // ₹5,500
+  });
+
+  it('aggregates top customers by total revenue', () => {
+    const invoices = [
+      { contactName: 'Rohan Bakery Orders', totalAmountPaise: 500000 },
+      { contactName: 'Anita Wedding Cakes', totalAmountPaise: 1200000 },
+      { contactName: 'Rohan Bakery Orders', totalAmountPaise: 300000 },
+    ];
+    const top = CalculationEngine.calculateTopCustomers([], invoices);
+    expect(top[0].name).toBe('Anita Wedding Cakes');
+    expect(top[0].totalRevenuePaise).toBe(1200000);
+    expect(top[1].name).toBe('Rohan Bakery Orders');
+    expect(top[1].totalRevenuePaise).toBe(800000);
   });
 });

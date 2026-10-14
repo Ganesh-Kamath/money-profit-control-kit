@@ -97,12 +97,30 @@ export interface Contact {
   createdAt: string;
 }
 
+export interface InvoiceLineItem {
+  id: string;
+  description: string;
+  hsnSac?: string;
+  quantity: number;
+  unit?: string;
+  ratePaise: number;
+  gstRatePct: number; // 0, 5, 12, 18, 28
+  taxablePaise: number;
+  cgstPaise: number;
+  sgstPaise: number;
+  igstPaise: number;
+  totalPaise: number;
+}
+
 export interface Invoice {
   id: string;
   workspaceId: string;
   invoiceNumber: string;
   contactId?: string;
   contactName: string;
+  customerAddress?: string;
+  customerGstin?: string;
+  customerState?: string;
   issueDate: string;
   dueDate: string;
   totalAmountPaise: number;
@@ -110,8 +128,81 @@ export interface Invoice {
   status: InvoiceStatus;
   categoryId?: string;
   notes?: string;
+  // GST & Tax Invoice fields (Part A2)
+  isTaxInvoice?: boolean;
+  businessLegalName?: string;
+  businessGstin?: string;
+  businessAddress?: string;
+  placeOfSupplyState?: string;
+  lineItems?: InvoiceLineItem[];
+  taxableAmountPaise?: number;
+  cgstPaise?: number;
+  sgstPaise?: number;
+  igstPaise?: number;
+  totalInWords?: string;
+  prefix?: string;
+  sequenceNumber?: number;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface BusinessProfile {
+  id: string; // usually same as workspaceId or 'default'
+  workspaceId: string;
+  legalName: string;
+  tradeName?: string;
+  gstin?: string;
+  address: string;
+  state: string;
+  stateCode?: string;
+  pincode?: string;
+  phone?: string;
+  email?: string;
+  bankName?: string;
+  accountNumber?: string;
+  ifscCode?: string;
+  upiId?: string;
+  invoicePrefix: string;
+  nextInvoiceNumber: number;
+  updatedAt: string;
+}
+
+export interface CategorisationRule {
+  id: string;
+  workspaceId: string;
+  pattern: string; // substring match
+  categoryId: string;
+  matchType: 'contains' | 'starts_with' | 'exact';
+  autoApplyOnImport: boolean;
+  createdAt: string;
+}
+
+export interface RecurringEntry {
+  id: string;
+  workspaceId: string;
+  title: string;
+  type: 'income' | 'expense';
+  amountPaise: number;
+  categoryId?: string;
+  accountId?: string;
+  frequency: 'monthly' | 'weekly' | 'quarterly' | 'annual';
+  dayOfMonth?: number; // 1-31
+  nextDueDate: string; // YYYY-MM-DD
+  lastConfirmedDate?: string;
+  status: 'active' | 'paused';
+  notes?: string;
+  createdAt: string;
+}
+
+export interface DailyCashReconciliation {
+  id: string;
+  workspaceId: string;
+  date: string; // YYYY-MM-DD
+  countedCashPaise: number;
+  expectedCashPaise: number;
+  differencePaise: number;
+  notes?: string;
+  createdAt: string;
 }
 
 export interface Reconciliation {
@@ -194,6 +285,10 @@ export class ControlKitDatabase extends Dexie {
   alerts!: Table<Alert, string>;
   license!: Table<LicenseRecord, string>;
   appSecurity!: Table<AppSecurityRecord, string>;
+  businessProfiles!: Table<BusinessProfile, string>;
+  categorisationRules!: Table<CategorisationRule, string>;
+  recurringEntries!: Table<RecurringEntry, string>;
+  dailyCashReconciliations!: Table<DailyCashReconciliation, string>;
 
   constructor() {
     super('ControlKitDB');
@@ -211,6 +306,32 @@ export class ControlKitDatabase extends Dexie {
       alerts: 'id, workspaceId, isDismissed, [workspaceId+isDismissed]',
       license: 'id',
       appSecurity: 'id',
+    });
+
+    this.version(2).stores({
+      workspaces: 'id, name, isDemo',
+      categories: 'id, workspaceId, type, [workspaceId+type]',
+      accounts: 'id, workspaceId, name, [workspaceId+name]',
+      transactions: 'id, workspaceId, occurredAt, accountId, categoryId, status, idempotencyKey, [workspaceId+status], [workspaceId+occurredAt]',
+      receipts: 'id, workspaceId, transactionId, sha256Hash, status, [workspaceId+sha256Hash]',
+      contacts: 'id, workspaceId, name',
+      invoices: 'id, workspaceId, status, dueDate, [workspaceId+status]',
+      reconciliations: 'id, workspaceId, accountId',
+      periodLocks: 'id, workspaceId, periodEndDate, [workspaceId+periodEndDate]',
+      auditEvents: 'id, workspaceId, entityId, createdAt',
+      alerts: 'id, workspaceId, isDismissed, [workspaceId+isDismissed]',
+      license: 'id',
+      appSecurity: 'id',
+      businessProfiles: 'id, workspaceId',
+      categorisationRules: 'id, workspaceId, pattern, categoryId',
+      recurringEntries: 'id, workspaceId, frequency, nextDueDate, status',
+      dailyCashReconciliations: 'id, workspaceId, date',
+    }).upgrade(async (tx) => {
+      await tx.table('invoices').toCollection().modify((inv: any) => {
+        if (inv.isTaxInvoice === undefined) {
+          inv.isTaxInvoice = false;
+        }
+      });
     });
   }
 }

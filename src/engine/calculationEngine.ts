@@ -41,6 +41,7 @@ export interface CategoryBreakdownItem {
 
 export interface FinancialMetrics {
   revenuePaise: number;
+  totalIncomePaise: number;
   revenueFormatted: string;
   totalExpensePaise: number;
   totalExpenseFormatted: string;
@@ -48,6 +49,7 @@ export interface FinancialMetrics {
   stockPurchasePaise: number;
   equipmentPurchasePaise: number;
   estimatedNetProfitPaise: number;
+  netProfitPaise: number;
   estimatedNetProfitFormatted: string;
   netMarginPct: number;
   manualCogsPaise: number;
@@ -133,6 +135,49 @@ export function parseINRToPaise(input: string): number {
 }
 
 /**
+ * Formats an ISO date string or Date object to DD/MM/YYYY in Asia/Kolkata.
+ */
+export function formatIndianDate(date: string | Date): string {
+  if (!date) return '';
+  const d = typeof date === 'string' ? new Date(date) : date;
+  if (isNaN(d.getTime())) return '';
+  const day = d.getDate().toString().padStart(2, '0');
+  const month = (d.getMonth() + 1).toString().padStart(2, '0');
+  const year = d.getFullYear();
+  return `${day}/${month}/${year}`;
+}
+
+export interface PeriodComparison {
+  revenueDeltaPaise: number;
+  revenueDeltaPct: number;
+  revenueSummary: string;
+  expenseDeltaPaise: number;
+  expenseDeltaPct: number;
+  expenseSummary: string;
+  profitDeltaPaise: number;
+  profitDeltaPct: number;
+  profitSummary: string;
+  marginDeltaPct: number;
+  isProfitUp: boolean;
+  isExpenseDown: boolean;
+}
+
+export interface ReceivablesAgeingBucket {
+  range: '0-30 days' | '31-60 days' | '61+ days';
+  amountPaise: number;
+  amountFormatted: string;
+  invoiceCount: number;
+}
+
+export interface ReceivablesAgeingReport {
+  current0to30: ReceivablesAgeingBucket;
+  overdue31to60: ReceivablesAgeingBucket;
+  overdue61plus: ReceivablesAgeingBucket;
+  totalOutstandingPaise: number;
+  totalOutstandingFormatted: string;
+}
+
+/**
  * Calculates start and end timestamps for standard business periods in ISO format.
  */
 export function getPeriodBoundaries(
@@ -180,6 +225,35 @@ export function getPeriodBoundaries(
       start = new Date(year - 1, fyMonth0, 1, 0, 0, 0, 0);
       end = new Date(year, fyMonth0, 0, 23, 59, 59, 999);
     }
+  } else if (periodKey === 'last_fy') {
+    const fyMonth0 = fyStartMonth - 1;
+    if (month >= fyMonth0) {
+      start = new Date(year - 1, fyMonth0, 1, 0, 0, 0, 0);
+      end = new Date(year, fyMonth0, 0, 23, 59, 59, 999);
+    } else {
+      start = new Date(year - 2, fyMonth0, 1, 0, 0, 0, 0);
+      end = new Date(year - 1, fyMonth0, 0, 23, 59, 59, 999);
+    }
+  } else if (periodKey === 'q1') {
+    // Q1: April 1 - June 30
+    const fyYear = month >= 3 ? year : year - 1;
+    start = new Date(fyYear, 3, 1, 0, 0, 0, 0);
+    end = new Date(fyYear, 6, 0, 23, 59, 59, 999);
+  } else if (periodKey === 'q2') {
+    // Q2: July 1 - September 30
+    const fyYear = month >= 3 ? year : year - 1;
+    start = new Date(fyYear, 6, 1, 0, 0, 0, 0);
+    end = new Date(fyYear, 9, 0, 23, 59, 59, 999);
+  } else if (periodKey === 'q3') {
+    // Q3: October 1 - December 31
+    const fyYear = month >= 3 ? year : year - 1;
+    start = new Date(fyYear, 9, 1, 0, 0, 0, 0);
+    end = new Date(fyYear, 12, 0, 23, 59, 59, 999);
+  } else if (periodKey === 'q4') {
+    // Q4: January 1 - March 31
+    const fyYear = month >= 3 ? year + 1 : year;
+    start = new Date(fyYear, 0, 1, 0, 0, 0, 0);
+    end = new Date(fyYear, 3, 0, 23, 59, 59, 999);
   } else {
     // all_time fallback
     start = new Date(2000, 0, 1, 0, 0, 0, 0);
@@ -303,6 +377,7 @@ export class CalculationEngine {
 
     return {
       revenuePaise,
+      totalIncomePaise: revenuePaise,
       revenueFormatted: formatINR(revenuePaise),
       totalExpensePaise,
       totalExpenseFormatted: formatINR(totalExpensePaise),
@@ -310,6 +385,7 @@ export class CalculationEngine {
       stockPurchasePaise,
       equipmentPurchasePaise,
       estimatedNetProfitPaise,
+      netProfitPaise: estimatedNetProfitPaise,
       estimatedNetProfitFormatted: formatINR(estimatedNetProfitPaise),
       netMarginPct,
       manualCogsPaise,
@@ -406,4 +482,181 @@ export class CalculationEngine {
     }
     return unusual;
   }
+
+  /**
+   * Computes plain-language period comparison (MoM, YoY) with deltas and directions.
+   */
+  static calculateComparison(
+    current: FinancialMetrics,
+    previous: FinancialMetrics,
+    periodLabel = 'last month'
+  ): PeriodComparison {
+    const revenueDeltaPaise = current.revenuePaise - previous.revenuePaise;
+    const revenueDeltaPct =
+      previous.revenuePaise > 0
+        ? Math.round((revenueDeltaPaise / previous.revenuePaise) * 1000) / 10
+        : current.revenuePaise > 0
+        ? 100
+        : 0;
+
+    const expenseDeltaPaise = current.totalExpensePaise - previous.totalExpensePaise;
+    const expenseDeltaPct =
+      previous.totalExpensePaise > 0
+        ? Math.round((expenseDeltaPaise / previous.totalExpensePaise) * 1000) / 10
+        : current.totalExpensePaise > 0
+        ? 100
+        : 0;
+
+    const profitDeltaPaise = current.estimatedNetProfitPaise - previous.estimatedNetProfitPaise;
+    const profitDeltaPct =
+      previous.estimatedNetProfitPaise !== 0
+        ? Math.round((profitDeltaPaise / Math.abs(previous.estimatedNetProfitPaise)) * 1000) / 10
+        : current.estimatedNetProfitPaise > 0
+        ? 100
+        : 0;
+
+    const marginDeltaPct = Math.round((current.netMarginPct - previous.netMarginPct) * 10) / 10;
+    const isProfitUp = profitDeltaPaise >= 0;
+    const isExpenseDown = expenseDeltaPaise <= 0;
+
+    const profitSummary =
+      profitDeltaPaise === 0
+        ? `Profit is unchanged vs ${periodLabel}`
+        : isProfitUp
+        ? `Profit is up ${formatINR(profitDeltaPaise)} (${Math.abs(profitDeltaPct)}%) vs ${periodLabel}`
+        : `Profit is down ${formatINR(Math.abs(profitDeltaPaise))} (${Math.abs(profitDeltaPct)}%) vs ${periodLabel}`;
+
+    const revenueSummary =
+      revenueDeltaPaise === 0
+        ? `Revenue is unchanged vs ${periodLabel}`
+        : revenueDeltaPaise > 0
+        ? `Revenue is up ${formatINR(revenueDeltaPaise)} (${Math.abs(revenueDeltaPct)}%) vs ${periodLabel}`
+        : `Revenue is down ${formatINR(Math.abs(revenueDeltaPaise))} (${Math.abs(revenueDeltaPct)}%) vs ${periodLabel}`;
+
+    const expenseSummary =
+      expenseDeltaPaise === 0
+        ? `Expenses are unchanged vs ${periodLabel}`
+        : expenseDeltaPaise < 0
+        ? `Expenses are down ${formatINR(Math.abs(expenseDeltaPaise))} (${Math.abs(expenseDeltaPct)}%) vs ${periodLabel}`
+        : `Expenses are up ${formatINR(expenseDeltaPaise)} (${Math.abs(expenseDeltaPct)}%) vs ${periodLabel}`;
+
+    return {
+      revenueDeltaPaise,
+      revenueDeltaPct,
+      revenueSummary,
+      expenseDeltaPaise,
+      expenseDeltaPct,
+      expenseSummary,
+      profitDeltaPaise,
+      profitDeltaPct,
+      profitSummary,
+      marginDeltaPct,
+      isProfitUp,
+      isExpenseDown,
+    };
+  }
+
+  /**
+   * Buckets unpaid invoice receivables into 0-30, 31-60, and 61+ days ageing buckets.
+   */
+  static calculateReceivablesAgeing(
+    invoices: Array<InvoiceRecord & { issueDate?: string; dueDate?: string }>,
+    asOfDate: Date = new Date()
+  ): ReceivablesAgeingReport {
+    let currentAmount = 0;
+    let currentCount = 0;
+    let overdue30to60Amount = 0;
+    let overdue30to60Count = 0;
+    let overdue61plusAmount = 0;
+    let overdue61plusCount = 0;
+
+    const asOfTime = asOfDate.getTime();
+    const dayMs = 24 * 60 * 60 * 1000;
+
+    for (const inv of invoices) {
+      if (inv.status === 'paid' || inv.status === 'cancelled') continue;
+      const outstanding = inv.totalAmountPaise - (inv.paidAmountPaise || 0);
+      if (outstanding <= 0) continue;
+
+      const dateToCompare = new Date(inv.dueDate || inv.issueDate || asOfDate).getTime();
+      const daysOverdue = Math.max(0, Math.floor((asOfTime - dateToCompare) / dayMs));
+
+      if (daysOverdue <= 30) {
+        currentAmount += outstanding;
+        currentCount++;
+      } else if (daysOverdue <= 60) {
+        overdue30to60Amount += outstanding;
+        overdue30to60Count++;
+      } else {
+        overdue61plusAmount += outstanding;
+        overdue61plusCount++;
+      }
+    }
+
+    const totalOutstandingPaise = currentAmount + overdue30to60Amount + overdue61plusAmount;
+
+    return {
+      current0to30: {
+        range: '0-30 days',
+        amountPaise: currentAmount,
+        amountFormatted: formatINR(currentAmount),
+        invoiceCount: currentCount,
+      },
+      overdue31to60: {
+        range: '31-60 days',
+        amountPaise: overdue30to60Amount,
+        amountFormatted: formatINR(overdue30to60Amount),
+        invoiceCount: overdue30to60Count,
+      },
+      overdue61plus: {
+        range: '61+ days',
+        amountPaise: overdue61plusAmount,
+        amountFormatted: formatINR(overdue61plusAmount),
+        invoiceCount: overdue61plusCount,
+      },
+      totalOutstandingPaise,
+      totalOutstandingFormatted: formatINR(totalOutstandingPaise),
+    };
+  }
+
+  /**
+   * Aggregates revenue by customer across sales and invoices.
+   */
+  static calculateTopCustomers(
+    transactions: TransactionRecord[],
+    invoices: Array<{ contactName: string; totalAmountPaise: number }>,
+    limit = 5
+  ): Array<{ name: string; totalRevenuePaise: number; totalRevenueFormatted: string }> {
+    const customerMap: Record<string, number> = {};
+
+    for (const inv of invoices) {
+      if (inv.contactName) {
+        const name = inv.contactName.trim();
+        customerMap[name] = (customerMap[name] || 0) + inv.totalAmountPaise;
+      }
+    }
+
+    return Object.entries(customerMap)
+      .map(([name, totalRevenuePaise]) => ({
+        name,
+        totalRevenuePaise,
+        totalRevenueFormatted: formatINR(totalRevenuePaise),
+      }))
+      .sort((a, b) => b.totalRevenuePaise - a.totalRevenuePaise)
+      .slice(0, limit);
+  }
 }
+
+/**
+ * Neutralizes CSV formula injection (OWASP) by prefixing cells starting with =, +, -, @, \t, or \r
+ * with a single apostrophe and wrapping in double quotes.
+ */
+export function sanitizeCSVCell(value: string | number | null | undefined): string {
+  if (value === null || value === undefined) return '""';
+  let str = String(value);
+  if (/^[=+\-@\t\r]/.test(str)) {
+    str = "'" + str;
+  }
+  return `"${str.replace(/"/g, '""')}"`;
+}
+
