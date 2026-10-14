@@ -10,7 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
-    "verify": "tsc --noEmit && vitest run && vite build",
+    "verify": "tsc --noEmit && vitest run && vite build && playwright test",
     "keygen": "tsx tools/keygen.ts",
     "issue-license": "tsx tools/generate-license.ts"
   },

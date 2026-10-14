@@ -29,15 +29,26 @@ export const App: React.FC = () => {
     closeAssistant,
     drilldownParams,
     workspaces,
+    activeWorkspace,
   } = useApp();
 
   const [isOnboardingOpen, setIsOnboardingOpen] = React.useState(false);
 
   useEffect(() => {
-    if (workspaces.length === 0) {
-      setIsOnboardingOpen(true);
+    if (activeWorkspace || workspaces.length > 0) {
+      setIsOnboardingOpen(false);
+      return;
     }
-  }, [workspaces]);
+
+    // Delay slightly to give Dexie/IndexedDB time to load workspaces on cold start
+    const timer = setTimeout(() => {
+      if (workspaces.length === 0 && !activeWorkspace) {
+        setIsOnboardingOpen(true);
+      }
+    }, 350);
+
+    return () => clearTimeout(timer);
+  }, [workspaces, activeWorkspace]);
 
   // Global Keyboard Shortcuts
   useEffect(() => {

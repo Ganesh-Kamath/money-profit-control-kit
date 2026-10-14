@@ -37,3 +37,9 @@ logs/
 # OS files
 .DS_Store
 Thumbs.db
+
+# Test outputs
+test-results/
+playwright-report/
+blob-report/
+
