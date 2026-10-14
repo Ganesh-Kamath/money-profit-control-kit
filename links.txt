@@ -35,8 +35,11 @@ src/components/DailyCashModal.tsx - https://github.com/Ganesh-Kamath/money-profi
 src/components/DrilldownModal.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/components/DrilldownModal.tsx
 src/components/ErrorBoundary.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/components/ErrorBoundary.tsx
 src/components/FastEntryModal.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/components/FastEntryModal.tsx
+src/components/GuidedTourModal.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/components/GuidedTourModal.tsx
+src/components/HelpModal.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/components/HelpModal.tsx
 src/components/OnboardingModal.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/components/OnboardingModal.tsx
 src/components/PinLockModal.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/components/PinLockModal.tsx
+src/components/PrivacyCenterModal.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/components/PrivacyCenterModal.tsx
 src/components/RecurringEntriesModal.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/components/RecurringEntriesModal.tsx
 src/config/commerce.ts - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/config/commerce.ts
 src/context/AppContext.tsx - https://github.com/Ganesh-Kamath/money-profit-control-kit/blob/main/src/context/AppContext.tsx

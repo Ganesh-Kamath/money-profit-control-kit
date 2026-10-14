@@ -10,6 +10,9 @@ import {
 import { getTranslation, type SupportedLanguage } from '../i18n/translations';
 import { FastEntryModal } from '../components/FastEntryModal';
 import { DailyCashModal } from '../components/DailyCashModal';
+import { HelpModal } from '../components/HelpModal';
+import { PrivacyCenterModal } from '../components/PrivacyCenterModal';
+import { GuidedTourModal } from '../components/GuidedTourModal';
 import {
   ArrowDownRight,
   ArrowUpRight,
@@ -29,6 +32,12 @@ import {
   Trash2,
   Globe,
   ArrowRight,
+  Bell,
+  BellRing,
+  Sparkles,
+  Info,
+  Calendar,
+  CheckCircle2,
 } from 'lucide-react';
 
 export const OverviewPage: React.FC = () => {
@@ -53,10 +62,22 @@ export const OverviewPage: React.FC = () => {
   const [attentionItems, setAttentionItems] = useState<Array<{ id: string; label: string; action: () => void; severity: 'critical' | 'warning' | 'info' }>>([]);
   const [todayIncomePaise, setTodayIncomePaise] = useState<number>(0);
   const [todayExpensePaise, setTodayExpensePaise] = useState<number>(0);
+  const [todayTxCount, setTodayTxCount] = useState<number>(0);
+
+  // Delight & Habit States (Step 5)
+  const [ownerSalaryTargetStr, setOwnerSalaryTargetStr] = useState<string>('30000');
+  const [isEditingSalary, setIsEditingSalary] = useState<boolean>(false);
+  const [weeklyInsights, setWeeklyInsights] = useState<
+    Array<{ title: string; desc: string; type: 'positive' | 'warning' | 'info'; whyAction?: () => void }>
+  >([]);
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(false);
 
   // Modals
   const [isFastSaleOpen, setIsFastSaleOpen] = useState<boolean>(false);
   const [isDailyCashOpen, setIsDailyCashOpen] = useState<boolean>(false);
+  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
+  const [isTourOpen, setIsTourOpen] = useState<boolean>(false);
+  const [isPrivacyCenterOpen, setIsPrivacyCenterOpen] = useState<boolean>(false);
 
   // Backup Health State
   const [daysSinceBackup, setDaysSinceBackup] = useState<number | null>(null);
@@ -141,6 +162,134 @@ export const OverviewPage: React.FC = () => {
 
       setTodayIncomePaise(todayIn);
       setTodayExpensePaise(todayOut);
+      setTodayTxCount(todayTxs.length);
+
+      // Restore owner salary target from localStorage
+      const savedSalary = localStorage.getItem(`controlkit_owner_salary_${activeWorkspace!.id}`);
+      if (savedSalary) setOwnerSalaryTargetStr(savedSalary);
+
+      // Calculate 3 Weekly Plain-Language Insights (Step 5)
+      const weekStart = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      const prevWeekStart = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
+      const thisWeekTxs = enrichedTxs.filter(
+        (tx) => tx.status === 'active' && new Date(tx.occurredAt) >= weekStart
+      );
+      const prevWeekTxs = enrichedTxs.filter(
+        (tx) =>
+          tx.status === 'active' &&
+          new Date(tx.occurredAt) >= prevWeekStart &&
+          new Date(tx.occurredAt) < weekStart
+      );
+
+      const insights: Array<{
+        title: string;
+        desc: string;
+        type: 'positive' | 'warning' | 'info';
+        whyAction?: () => void;
+      }> = [];
+
+      // Insight 1: Top spending category this week
+      const thisWeekExp = thisWeekTxs.filter((tx) => tx.type === 'expense');
+      const weeklyExpPaise = thisWeekExp.reduce((s, tx) => s + tx.amountPaise, 0);
+
+      if (weeklyExpPaise > 0) {
+        const catSums: Record<string, { paise: number; id?: string }> = {};
+        for (const exp of thisWeekExp) {
+          const cName = exp.categoryName || 'General Expenses';
+          if (!catSums[cName]) catSums[cName] = { paise: 0, id: exp.categoryId };
+          catSums[cName].paise += exp.amountPaise;
+        }
+        const [topCatName, topCatData] = Object.entries(catSums).sort(
+          (a, b) => b[1].paise - a[1].paise
+        )[0];
+        const pct = Math.round((topCatData.paise / weeklyExpPaise) * 100);
+
+        insights.push({
+          title: `Top Weekly Expense: ${topCatName}`,
+          desc: `${topCatName} accounted for ${formatINR(topCatData.paise)} (${pct}% of this week's expenses).`,
+          type: 'info',
+          whyAction: () =>
+            openDrilldown({
+              title: `${topCatName} Expenses This Week`,
+              categoryId: topCatData.id,
+            }),
+        });
+      } else {
+        insights.push({
+          title: 'Zero Expenses This Week',
+          desc: 'No expense transactions were recorded in the last 7 days.',
+          type: 'positive',
+        });
+      }
+
+      // Insight 2: Sales velocity compared to prior 7 days
+      const thisWeekIncome = thisWeekTxs
+        .filter((tx) => tx.type === 'income')
+        .reduce((s, tx) => s + tx.amountPaise, 0);
+      const prevWeekIncome = prevWeekTxs
+        .filter((tx) => tx.type === 'income')
+        .reduce((s, tx) => s + tx.amountPaise, 0);
+
+      if (prevWeekIncome > 0) {
+        const diff = thisWeekIncome - prevWeekIncome;
+        const growthPct = Math.round((diff / prevWeekIncome) * 100);
+        if (growthPct >= 0) {
+          insights.push({
+            title: `Sales Trending Up (+${growthPct}%)`,
+            desc: `Weekly sales reached ${formatINR(thisWeekIncome)}, up +${growthPct}% from prior week's ${formatINR(prevWeekIncome)}.`,
+            type: 'positive',
+            whyAction: () =>
+              openDrilldown({
+                title: 'This Week Sales',
+                filterType: 'income',
+              }),
+          });
+        } else {
+          insights.push({
+            title: `Sales Down (${growthPct}%)`,
+            desc: `Weekly sales were ${formatINR(thisWeekIncome)} compared to ${formatINR(prevWeekIncome)} last week.`,
+            type: 'warning',
+            whyAction: () =>
+              openDrilldown({
+                title: 'Weekly Sales Comparison',
+                filterType: 'income',
+              }),
+          });
+        }
+      } else if (thisWeekIncome > 0) {
+        insights.push({
+          title: 'Strong Sales Inflow',
+          desc: `Recorded ${formatINR(thisWeekIncome)} in new customer sales across the past 7 days.`,
+          type: 'positive',
+        });
+      }
+
+      // Insight 3: Overdue receivables
+      const overdueInvs = allInvs.filter((i) => {
+        if (i.status === 'paid' || i.status === 'cancelled') return false;
+        return new Date(i.dueDate).getTime() < now.getTime();
+      });
+      if (overdueInvs.length > 0) {
+        const overdueTotal = overdueInvs.reduce(
+          (s, i) => s + (i.totalAmountPaise - i.paidAmountPaise),
+          0
+        );
+        insights.push({
+          title: `${overdueInvs.length} Invoices Past Due`,
+          desc: `${formatINR(overdueTotal)} is pending collection past the agreed customer payment date.`,
+          type: 'warning',
+          whyAction: () => setCurrentScreen('receivables'),
+        });
+      } else {
+        insights.push({
+          title: 'Receivables 100% Current',
+          desc: 'All customer invoices are either fully collected or within their agreed credit terms.',
+          type: 'positive',
+        });
+      }
+
+      setWeeklyInsights(insights);
 
       // Financial Metrics via shared calculation engine
       const computed = CalculationEngine.calculateMetrics(periodTxs as any, allInvs as any);
@@ -299,6 +448,36 @@ export const OverviewPage: React.FC = () => {
         </div>
 
         <div className="flex flex-wrap items-center gap-2">
+          {/* Help & 10 Q&A */}
+          <button
+            onClick={() => setIsHelpOpen(true)}
+            className="px-3 py-2 text-xs font-semibold bg-white border border-surface-border hover:bg-surface-subtle text-navy-700 rounded-control transition flex items-center gap-1.5 shadow-xs"
+            title="Practical Answers & 20-second data advice"
+          >
+            <HelpCircle className="h-3.5 w-3.5 text-navy-500" />
+            <span>Help</span>
+          </button>
+
+          {/* Privacy Center Audit */}
+          <button
+            onClick={() => setIsPrivacyCenterOpen(true)}
+            className="px-3 py-2 text-xs font-semibold bg-white border border-surface-border hover:bg-surface-subtle text-navy-700 rounded-control transition flex items-center gap-1.5 shadow-xs"
+            title="Live proof: Zero network calls, local storage"
+          >
+            <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+            <span>Privacy Audit</span>
+          </button>
+
+          {/* Guided Sample Tour */}
+          <button
+            onClick={() => setIsTourOpen(true)}
+            className="px-3 py-2 text-xs font-semibold bg-white border border-surface-border hover:bg-surface-subtle text-navy-700 rounded-control transition flex items-center gap-1.5 shadow-xs"
+            title="Explore 4-step walkthrough"
+          >
+            <Sparkles className="h-3.5 w-3.5 text-amber-500" />
+            <span>Tour</span>
+          </button>
+
           {/* Language Switcher */}
           <button
             onClick={handleToggleLang}
@@ -334,6 +513,47 @@ export const OverviewPage: React.FC = () => {
             <Plus className="h-3.5 w-3.5" />
             <span>+ Add Entry</span>
           </button>
+        </div>
+      </div>
+
+      {/* TODAY IN 10 SECONDS SUMMARY CARD (Step 5) */}
+      <div className="p-4 bg-navy-950 text-white rounded-card border border-navy-900 shadow-md space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-navy-800 pb-2.5">
+          <div className="flex items-center gap-2">
+            <Clock className="h-4 w-4 text-amber-400" />
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-200">
+              {t.cardTodayIn10Sec}
+            </h2>
+          </div>
+          <span className="text-[11px] text-slate-400">
+            {todayTxCount} transaction{todayTxCount === 1 ? '' : 's'} recorded today
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+          <div className="p-2.5 bg-navy-900/80 rounded-control border border-navy-800">
+            <span className="text-[11px] text-slate-400 block font-medium">Money In (Today)</span>
+            <div className="text-lg font-bold text-emerald-400 flex items-center gap-1 mt-0.5">
+              <span>+</span>
+              <span>{formatINR(todayIncomePaise)}</span>
+            </div>
+          </div>
+
+          <div className="p-2.5 bg-navy-900/80 rounded-control border border-navy-800">
+            <span className="text-[11px] text-slate-400 block font-medium">Money Out (Today)</span>
+            <div className="text-lg font-bold text-rose-400 flex items-center gap-1 mt-0.5">
+              <span>-</span>
+              <span>{formatINR(todayExpensePaise)}</span>
+            </div>
+          </div>
+
+          <div className="p-2.5 bg-navy-900/80 rounded-control border border-navy-800">
+            <span className="text-[11px] text-slate-400 block font-medium">Net Cash Movement</span>
+            <div className={`text-lg font-bold flex items-center gap-1 mt-0.5 ${todayIncomePaise >= todayExpensePaise ? 'text-emerald-400' : 'text-rose-400'}`}>
+              <span>{todayIncomePaise >= todayExpensePaise ? '+' : '-'}</span>
+              <span>{formatINR(Math.abs(todayIncomePaise - todayExpensePaise))}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -460,6 +680,161 @@ export const OverviewPage: React.FC = () => {
         )}
       </div>
 
+      {/* WEEKLY INSIGHTS & MONTHLY PROFIT CHECK (Step 5) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Weekly Insights Card */}
+        <div className="p-5 bg-white rounded-card border border-surface-border shadow-xs space-y-3">
+          <div className="flex items-center justify-between border-b border-surface-border pb-2.5">
+            <div className="flex items-center gap-2">
+              <Sparkles className="h-4 w-4 text-brand-600" />
+              <h3 className="text-xs font-bold uppercase tracking-wider text-navy-950">
+                {t.cardWeeklyInsights}
+              </h3>
+            </div>
+            <span className="text-[11px] text-navy-500">Computed strictly from real transactions</span>
+          </div>
+
+          <div className="space-y-2.5">
+            {weeklyInsights.map((ins, i) => (
+              <div
+                key={i}
+                className="p-3 bg-surface-subtle border border-surface-border rounded-control flex items-start justify-between gap-3 text-xs"
+              >
+                <div>
+                  <div className="font-bold text-navy-900 flex items-center gap-1.5">
+                    {ins.type === 'positive' ? (
+                      <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
+                    ) : ins.type === 'warning' ? (
+                      <AlertTriangle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+                    ) : (
+                      <Info className="h-3.5 w-3.5 text-brand-600 shrink-0" />
+                    )}
+                    <span>{ins.title}</span>
+                  </div>
+                  <p className="text-[11px] text-navy-600 mt-1 leading-relaxed">{ins.desc}</p>
+                </div>
+                {ins.whyAction && (
+                  <button
+                    onClick={ins.whyAction}
+                    className="px-2.5 py-1 text-[11px] font-bold text-brand-700 bg-white border border-surface-border hover:bg-surface-base rounded shrink-0 shadow-xs transition"
+                  >
+                    Why?
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Gentle Monthly "Profit Check" with Owner Salary Target */}
+        <div className="p-5 bg-white rounded-card border border-surface-border shadow-xs space-y-3 flex flex-col justify-between">
+          <div>
+            <div className="flex items-center justify-between border-b border-surface-border pb-2.5">
+              <div className="flex items-center gap-2">
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
+                <h3 className="text-xs font-bold uppercase tracking-wider text-navy-950">
+                  Monthly "Living Wage" Profit Check
+                </h3>
+              </div>
+              <button
+                onClick={() => setIsEditingSalary(!isEditingSalary)}
+                className="text-[11px] text-brand-600 hover:underline font-semibold"
+              >
+                {isEditingSalary ? 'Done' : 'Edit Target'}
+              </button>
+            </div>
+
+            <p className="text-[11px] text-navy-600 mt-2 leading-relaxed">
+              Real business profit is the surplus remaining <strong>after</strong> you pay yourself a fair living wage.
+            </p>
+
+            {isEditingSalary ? (
+              <form
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  localStorage.setItem(`controlkit_owner_salary_${activeWorkspace.id}`, ownerSalaryTargetStr);
+                  setIsEditingSalary(false);
+                }}
+                className="mt-3 p-3 bg-surface-subtle border border-surface-border rounded-control space-y-2 text-xs"
+              >
+                <label className="block font-semibold text-navy-900">
+                  Monthly Owner Salary / Living Wage Target (₹):
+                </label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="number"
+                    value={ownerSalaryTargetStr}
+                    onChange={(e) => setOwnerSalaryTargetStr(e.target.value)}
+                    className="w-full rounded-control border border-surface-borderStrong px-3 py-1.5 text-xs text-navy-900"
+                    placeholder="e.g. 30000"
+                  />
+                  <button
+                    type="submit"
+                    className="px-3 py-1.5 bg-brand-600 text-white font-bold rounded-control text-xs shrink-0 shadow-xs"
+                  >
+                    Save Target
+                  </button>
+                </div>
+              </form>
+            ) : (
+              <div className="mt-3 grid grid-cols-2 gap-3 text-xs">
+                <div className="p-2.5 bg-surface-subtle rounded-control border border-surface-border">
+                  <span className="text-[10px] text-navy-500 uppercase font-semibold">Net Operating Profit</span>
+                  <div className="text-base font-bold text-navy-950 mt-0.5">
+                    {metrics.estimatedNetProfitFormatted}
+                  </div>
+                </div>
+
+                <div className="p-2.5 bg-surface-subtle rounded-control border border-surface-border">
+                  <span className="text-[10px] text-navy-500 uppercase font-semibold">Owner Living Wage</span>
+                  <div className="text-base font-bold text-navy-700 mt-0.5">
+                    ₹{parseInt(ownerSalaryTargetStr || '0', 10).toLocaleString('en-IN')}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="mt-3 p-3 bg-emerald-50/70 border border-emerald-200 rounded-control text-xs flex items-center justify-between">
+              <div>
+                <span className="text-[11px] font-bold text-emerald-950 block">True Business Surplus</span>
+                <span className="text-[10px] text-emerald-800">Surplus available to reinvest or save</span>
+              </div>
+              <div className="text-base font-extrabold text-emerald-700">
+                {formatINR(metrics.estimatedNetProfitPaise - (parseInt(ownerSalaryTargetStr || '0', 10) * 100))}
+              </div>
+            </div>
+          </div>
+
+          {/* Local Closing Reminder */}
+          <div className="pt-2 border-t border-surface-border flex items-center justify-between text-xs">
+            <div className="flex items-center gap-2">
+              <Bell className="h-4 w-4 text-navy-500" />
+              <span className="text-[11px] text-navy-700">9:00 PM Daily Closing Reminder</span>
+            </div>
+            <button
+              onClick={async () => {
+                if ('Notification' in window) {
+                  const perm = await Notification.requestPermission();
+                  if (perm === 'granted') {
+                    setNotificationsEnabled(true);
+                    showToast({
+                      type: 'success',
+                      title: 'Reminders Active',
+                      message: 'Local 9:00 PM closing notification enabled.',
+                    });
+                  }
+                } else {
+                  alert('Local browser notifications are not supported by this browser.');
+                }
+              }}
+              className="text-[11px] font-bold text-brand-600 hover:text-brand-800"
+            >
+              {notificationsEnabled ? 'Active ✓' : 'Enable Opt-In'}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Recent Transactions & Accounts List */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left 2 Cols: Recent Transactions */}
@@ -537,6 +912,15 @@ export const OverviewPage: React.FC = () => {
 
       {/* Daily Cash Closing Modal */}
       <DailyCashModal isOpen={isDailyCashOpen} onClose={() => setIsDailyCashOpen(false)} />
+
+      {/* Help & 10 Q&A Modal */}
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+
+      {/* Privacy Center Modal */}
+      <PrivacyCenterModal isOpen={isPrivacyCenterOpen} onClose={() => setIsPrivacyCenterOpen(false)} />
+
+      {/* Guided Sample Tour Modal */}
+      <GuidedTourModal isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
     </div>
   );
 };

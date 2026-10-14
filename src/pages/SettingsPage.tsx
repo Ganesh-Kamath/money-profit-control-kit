@@ -13,7 +13,12 @@ import {
   AlertTriangle,
   Plus,
   RefreshCw,
+  HelpCircle,
+  Sparkles,
 } from 'lucide-react';
+import { HelpModal } from '../components/HelpModal';
+import { PrivacyCenterModal } from '../components/PrivacyCenterModal';
+import { GuidedTourModal } from '../components/GuidedTourModal';
 
 export const SettingsPage: React.FC = () => {
   const {
@@ -53,6 +58,10 @@ export const SettingsPage: React.FC = () => {
   const [newCatType, setNewCatType] = useState<'income' | 'expense'>('expense');
   const [newCatIsStock, setNewCatIsStock] = useState<boolean>(false);
   const [newCatIsEquipment, setNewCatIsEquipment] = useState<boolean>(false);
+  // Interactive Modals
+  const [isHelpOpen, setIsHelpOpen] = useState(false);
+  const [isPrivacyCenterOpen, setIsPrivacyCenterOpen] = useState(false);
+  const [isTourOpen, setIsTourOpen] = useState(false);
 
   React.useEffect(() => {
     if (!activeWorkspace) return;
@@ -391,10 +400,15 @@ export const SettingsPage: React.FC = () => {
           </div>
 
           {/* Privacy Centre Guarantee */}
-          <div className="rounded-card bg-emerald-50/50 border border-emerald-200 p-5 space-y-3 text-xs text-emerald-950">
-            <div className="flex items-center gap-2">
-              <ShieldCheck className="h-5 w-5 text-emerald-700" />
-              <h2 className="text-sm font-bold text-emerald-900">Privacy Centre Guarantee</h2>
+          <div className="rounded-card bg-emerald-50/50 border border-emerald-200 p-5 space-y-4 text-xs text-emerald-950">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-emerald-700" />
+                <h2 className="text-sm font-bold text-emerald-900">Privacy Centre Guarantee</h2>
+              </div>
+              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                100% On-Device
+              </span>
             </div>
             <p className="leading-relaxed">
               <strong>Your financial data never leaves your device:</strong>
@@ -405,6 +419,33 @@ export const SettingsPage: React.FC = () => {
               <li>Network requests with user financial data: <strong>EXACTLY ZERO.</strong></li>
               <li>All records reside in your browser's encrypted on-device IndexedDB storage.</li>
             </ul>
+
+            <div className="flex flex-wrap gap-2 pt-2 border-t border-emerald-200/60">
+              <button
+                type="button"
+                onClick={() => setIsPrivacyCenterOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-emerald-700 text-white font-semibold text-xs hover:bg-emerald-800 transition shadow-sm"
+              >
+                <ShieldCheck className="h-3.5 w-3.5" />
+                Live Privacy Inspector
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsHelpOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-white border border-emerald-300 text-emerald-900 font-semibold text-xs hover:bg-emerald-50 transition shadow-sm"
+              >
+                <HelpCircle className="h-3.5 w-3.5 text-emerald-700" />
+                Help & FAQ (EN / हिन्दी)
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsTourOpen(true)}
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-control bg-white border border-emerald-300 text-emerald-900 font-semibold text-xs hover:bg-emerald-50 transition shadow-sm"
+              >
+                <Sparkles className="h-3.5 w-3.5 text-amber-600" />
+                Replay Sample Tour
+              </button>
+            </div>
           </div>
 
           {/* Wipe All Data Danger Zone */}
@@ -422,6 +463,11 @@ export const SettingsPage: React.FC = () => {
           </div>
         </div>
       </div>
+
+      {/* Interactive Modals */}
+      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      <PrivacyCenterModal isOpen={isPrivacyCenterOpen} onClose={() => setIsPrivacyCenterOpen(false)} />
+      <GuidedTourModal isOpen={isTourOpen} onClose={() => setIsTourOpen(false)} />
     </div>
   );
 };
